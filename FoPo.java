@@ -1,6 +1,8 @@
 import java.lang.*;
 import java.util.*;
-
+// Foreign Policy Decision Making Model 
+// Joy Hill
+// Advisor: Greg Marfleet
 
 public class FoPo {
 	private int numagent;
@@ -38,12 +40,6 @@ public class FoPo {
 
 	public class Exec extends Agent{
 		public Exec() {
-		}
-		public int[] makeDecision() {
-			int[] decision = new int[2];
-			decision[0] = 5;
-			decision[1] = 5;
-			return decision;
 		}
 	} 
 	public class Legislator extends Agent{
@@ -95,6 +91,15 @@ public class FoPo {
 	public ArrayList<Double> get_success() {
 		return success;
 	}
+
+	public int[] makeDecision() {
+			int[] decision = ExecList.get(0).opinion;
+			int xnoise = (int)(Math.random() * 20 - 10);
+			int ynoise = (int)(Math.random() * 20 - 10);
+			decision[0] += xnoise;
+			decision[1] += ynoise;
+			return decision;
+		}
 
 	public static void main(String[] args) {
 		FoPo world = new FoPo(1,1,1,1,1,1);
