@@ -10,25 +10,23 @@ import java.lang.*;
 import java.util.*;
 
 
-public class FoPo {
+public class FFoPo {
 	//Global Data for the world in which the agents live. 
 	private int numagent;
 	private ArrayList<Exec> ExecList;
 	private ArrayList<Legislator> LegList;
 	private ArrayList<Advisor> AdvisorList;
-	private ArrayList<Lobbyist> LobbyList;
 	private ArrayList<Agent> AgentList;
 	private ArrayList<int[]> OrgOpinions;
 	private ArrayList<int[]> InstOpinions;
 	private int numInst;
-	private int numOrg;
 	private ArrayList<Double> success;
 	private ArrayList<ArrayList<Integer>> relationships;
 
 	//Constructor for the world. Nothing practical happens here: capacities for
 	//each list are set up with dummy for loops.
-	public FoPo(int numExec, int numLeg, int numAdvisor, int numLobby, int numI, int numO) {
-		numagent = numExec + numLeg + numAdvisor + numLobby;
+	public FFoPo(int numExec, int numLeg, int numAdvisor, int numI) {
+		numagent = numExec + numLeg + numAdvisor;
 		ExecList = new ArrayList<Exec>(numExec);
 		for(int i = 0; i < numExec; i++) {
 			Exec x = new Exec(new int[2], 0, 0);
@@ -45,12 +43,6 @@ public class FoPo {
 			Advisor x = new Advisor(new int[2], 0, 0, 0);
 			AdvisorList.add(x);
 		}
-		int lobCap = numLobby - (numOrg % numLeg);
-		LobbyList = new ArrayList<Lobbyist>(lobCap);
-		for(int i = 0; i < lobCap; i++) {
-			Lobbyist x = new Lobbyist(new int[2], 0, 0, 0);
-			LobbyList.add(x);
-		}
 		AgentList = new ArrayList<Agent>(numagent);
 		for(int i = 0; i < numagent; i++) {
 			Agent x = new Agent(new int[2], 0, 0);
@@ -62,16 +54,10 @@ public class FoPo {
 			relationships.add(new ArrayList<Integer>(numagent));
 		}
 		numInst = numI;
-		numOrg = numO;
 		InstOpinions = new ArrayList<int[]>(numI);
-		OrgOpinions = new ArrayList<int[]>(numO);
 		for (int i = 0; i < numInst; i++) {
 			int[] op = new int[2];
 			InstOpinions.add(op);
-		}
-		for (int i = 0; i < numOrg; i++) {
-			int[] op = new int[2];
-			OrgOpinions.add(op);
 		}
 	}
 
@@ -119,7 +105,7 @@ public class FoPo {
 			int[] o = new int[2];
 			o[0] = (int)(Math.random() * 200 - 100);
 			o[1] = (int)(Math.random() * 200 - 100);
-			int p = (int)(Math.random() * 25);
+			int p = (int)(Math.random() * 10);
 			Legislator x = new Legislator(o, p, i + total);
 			LegList.set(i, x);
 			AgentList.set(i + total, x);
@@ -145,32 +131,14 @@ public class FoPo {
 				count++;
 			}
 		}
-		total += count; 
-		distribution = (int) (LobbyList.size() / numOrg);
-		count = 0;
-		for (int i = 0; i < numOrg; i++) {
-			int[] o = new int[2];
-			o[0] = (int)(Math.random() * 200 - 100);
-			o[1] = (int)(Math.random() * 200 - 100);
-			OrgOpinions.set(i, o);
-			for (int j = 0; j < distribution; j++) {
-				int p = (int)(Math.random() * 25);
-				Lobbyist x = new Lobbyist(o, p, count + total, i);
-				LobbyList.set(count, x);
-				AgentList.set(count + total, x);
-				count++;
-			}
-		}
 
-		//Initialize Relationships: assign a random value between
-		//0 and 10 to the relationship matrix.
+		//Initialize Relationships: assign the same value to every relationship.
 		for (int i = 0; i < AgentList.size(); i++) {
 			for (int j = 0; j < AgentList.size(); j++) {
-				int rel = (int) (Math.random() * 10);
+				int rel = 5;
 				relationships.get(i).add(j, rel);
 			}
 		}
-		
 	}
 
 
@@ -291,17 +259,7 @@ public class FoPo {
 		public int getRank(){
 			return 2;
 		}
-	} 
-	public class Lobbyist extends Agent{
-		int organization;
-		public Lobbyist(int[] o, int p, int i, int org) {
-			super(o, p, i);
-			organization = org;
-		}
-		public int getRank(){
-			return 3;
-		}
-	} 
+	}  
 
 
 	public void updateInst() {
@@ -314,16 +272,7 @@ public class FoPo {
 			advop[1] = (advop[1] + instop[1]) / 2;
 		}
 	}
-	public void updateOrg() {
-		for (int i = 0; i < LobbyList.size(); i++) {
-			Lobbyist x = LobbyList.get(i);
-			int org = x.organization;
-			int[] lobop = x.opinion;
-			int[] orgop = OrgOpinions.get(org);
-			lobop[0] = (lobop[0] + orgop[0]) / 2; 
-			lobop[1] = (lobop[1] + orgop[1]) / 2;
-		}
-	}
+
 	public void updatePersuasiveness(int[] OPT) {
 		for (int i = 0; i < AgentList.size(); i++) {
 			Agent x = AgentList.get(i);
@@ -392,7 +341,6 @@ public class FoPo {
 
 			//TO DO: Recalibrate members of orgs and institutions and update persuasiveness level
 			updateInst();
-			updateOrg();
 			updatePersuasiveness(OPT);
 		}
 		return OPT;
@@ -432,8 +380,8 @@ public class FoPo {
 	//their current opinion and returning that.
 	public int[] makeDecision() {
 			int[] decision = ExecList.get(0).opinion;
-			int xnoise = (int)(Math.random() * 20 - 10);
-			int ynoise = (int)(Math.random() * 20 - 10);
+			int xnoise = (int)(Math.random() * 40 - 10);
+			int ynoise = (int)(Math.random() * 40 - 10);
 			decision[0] += xnoise;
 			decision[1] += ynoise;
 			return decision;
@@ -456,29 +404,27 @@ public class FoPo {
 		//FoPo world = new FoPo(5,8,12,15,3,3);
 		int[] OPT = new int[2];
 
-		FoPo world = new FoPo(5,10,15,15,5,5);
-		world.initialize();
-		OPT = world.run(100, 100);
-		world.success_for_csv();
-
-
-		world = new FoPo(20,25,30,50,5,10);
-		world.initialize();
-		OPT = world.run(100, 100);
-		world.success_for_csv();	
-
-
-		world = new FoPo(5,10,15,15,5,5);
+		FFoPo world = new FFoPo(5,10,15,5);
 		world.initialize();
 		OPT = world.run(100, 25);
 		world.success_for_csv();
 
 		
-		world = new FoPo(20,25,30,50,5,10);
+		world = new FFoPo(20,25,30, 5);
 		world.initialize();
 		OPT = world.run(100, 25);
 		world.success_for_csv();
 
+		world = new FFoPo(5,10,15,5);
+		world.initialize();
+		OPT = world.run(100, 25);
+		world.success_for_csv();
+
+		
+		world = new FFoPo(20,25,30, 5);
+		world.initialize();
+		OPT = world.run(100, 25);
+		world.success_for_csv();
 // ///////////////////////////////////////////////////////////////////////////
 // 		for (int i = 0; i < 50; i++) {
 // 			world = new FoPo(1,1,120,150,3,3);

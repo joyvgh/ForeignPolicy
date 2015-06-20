@@ -10,25 +10,21 @@ import java.lang.*;
 import java.util.*;
 
 
-public class FoPo {
+public class JFoPo {
 	//Global Data for the world in which the agents live. 
 	private int numagent;
 	private ArrayList<Exec> ExecList;
 	private ArrayList<Legislator> LegList;
 	private ArrayList<Advisor> AdvisorList;
-	private ArrayList<Lobbyist> LobbyList;
 	private ArrayList<Agent> AgentList;
-	private ArrayList<int[]> OrgOpinions;
-	private ArrayList<int[]> InstOpinions;
 	private int numInst;
-	private int numOrg;
 	private ArrayList<Double> success;
 	private ArrayList<ArrayList<Integer>> relationships;
 
 	//Constructor for the world. Nothing practical happens here: capacities for
 	//each list are set up with dummy for loops.
-	public FoPo(int numExec, int numLeg, int numAdvisor, int numLobby, int numI, int numO) {
-		numagent = numExec + numLeg + numAdvisor + numLobby;
+	public JFoPo(int numExec, int numLeg, int numAdvisor) {
+		numagent = numExec + numLeg + numAdvisor;
 		ExecList = new ArrayList<Exec>(numExec);
 		for(int i = 0; i < numExec; i++) {
 			Exec x = new Exec(new int[2], 0, 0);
@@ -39,17 +35,10 @@ public class FoPo {
 			Legislator x = new Legislator(new int[2], 0, 0);
 			LegList.add(x);
 		}
-		int advCap = numAdvisor - (numInst % numAdvisor);
-		AdvisorList = new ArrayList<Advisor>(advCap);
-		for(int i = 0; i < advCap; i++) {
-			Advisor x = new Advisor(new int[2], 0, 0, 0);
+		AdvisorList = new ArrayList<Advisor>(numAdvisor);
+		for(int i = 0; i < numAdvisor; i++) {
+			Advisor x = new Advisor(new int[2], 0, 0);
 			AdvisorList.add(x);
-		}
-		int lobCap = numLobby - (numOrg % numLeg);
-		LobbyList = new ArrayList<Lobbyist>(lobCap);
-		for(int i = 0; i < lobCap; i++) {
-			Lobbyist x = new Lobbyist(new int[2], 0, 0, 0);
-			LobbyList.add(x);
 		}
 		AgentList = new ArrayList<Agent>(numagent);
 		for(int i = 0; i < numagent; i++) {
@@ -60,18 +49,6 @@ public class FoPo {
 		relationships = new ArrayList<ArrayList<Integer>>(numagent);
 		for (int i = 0; i < numagent; i++) {
 			relationships.add(new ArrayList<Integer>(numagent));
-		}
-		numInst = numI;
-		numOrg = numO;
-		InstOpinions = new ArrayList<int[]>(numI);
-		OrgOpinions = new ArrayList<int[]>(numO);
-		for (int i = 0; i < numInst; i++) {
-			int[] op = new int[2];
-			InstOpinions.add(op);
-		}
-		for (int i = 0; i < numOrg; i++) {
-			int[] op = new int[2];
-			OrgOpinions.add(op);
 		}
 	}
 
@@ -126,51 +103,38 @@ public class FoPo {
 		}
 		total += LegList.size();
 
-		//Advisors and Lobbyists are initialized slightly differently because
-		//each agent's opinion is contingent on their organization or 
-		//institution affiliation. Every agent in a given org or inst begins
-		//with the same initial opinion.
-		int distribution = (int) (AdvisorList.size() / numInst);
-		int count = 0;
-		for (int i = 0; i < numInst; i++) {
+		//For the Japanese model, Advisors will be seen just as a different rank of other
+		//agents.
+		for (int i = 0; i < AdvisorList.size(); i++) {
 			int[] o = new int[2];
 			o[0] = (int)(Math.random() * 200 - 100);
 			o[1] = (int)(Math.random() * 200 - 100);
-			InstOpinions.set(i, o);
-			for (int j = 0; j < distribution; j++) {
-				int p = (int)(Math.random() * 25);
-				Advisor x = new Advisor(o, p, count + total, i);
-				AdvisorList.set(count, x);
-				AgentList.set(count + total, x);
-				count++;
-			}
+			int p = (int)(Math.random() * 25);
+			Advisor x = new Advisor(o, p, i + total);
+			AdvisorList.set(i, x);
+			AgentList.set(i + total, x);
 		}
-		total += count; 
-		distribution = (int) (LobbyList.size() / numOrg);
-		count = 0;
-		for (int i = 0; i < numOrg; i++) {
-			int[] o = new int[2];
-			o[0] = (int)(Math.random() * 200 - 100);
-			o[1] = (int)(Math.random() * 200 - 100);
-			OrgOpinions.set(i, o);
-			for (int j = 0; j < distribution; j++) {
-				int p = (int)(Math.random() * 25);
-				Lobbyist x = new Lobbyist(o, p, count + total, i);
-				LobbyList.set(count, x);
-				AgentList.set(count + total, x);
-				count++;
+
+
+		//Initializing relationships, but only of those of the same rank as the indiv.
+		for (int i = 0; i < AgentList.size(); i++) {
+			for (int j = 0; j < AgentList.size(); j++) {
+				int rel = (int) (Math.random() * 10 + 5);
+				if (AgentList.get(j).getRank() == AgentList.get(i).getRank())
+					relationships.get(i).add(j, rel);
+				else
+					relationships.get(i).add(j, 0);
 			}
 		}
 
-		//Initialize Relationships: assign a random value between
-		//0 and 10 to the relationship matrix.
-		for (int i = 0; i < AgentList.size(); i++) {
-			for (int j = 0; j < AgentList.size(); j++) {
-				int rel = (int) (Math.random() * 10);
-				relationships.get(i).add(j, rel);
-			}
-		}
-		
+		//Separately, liaison relationships will be added. A randomly selected pair
+		//from adjacent ranks will be given a high relationship.
+		int execToLeg = ExecList.size() - 1;
+		int legToExec = ExecList.size();
+		int legToAdv = ExecList.size() + LegList.size() - 1;
+		int advToLeg = ExecList.size() + LegList.size();
+		relationships.get(execToLeg).add(legToExec, 20);
+		relationships.get(legToAdv).add(advToLeg, 20);
 	}
 
 
@@ -213,10 +177,10 @@ public class FoPo {
 
 				//update interaction value
 				if (distance < 20) {
-					interaction += 2;
+					interaction += 5;
 				}
 				else if (distance < 50) {
-					interaction += 1;
+					interaction += 3;
 				}
 				else if (distance > 100) {
 					interaction -= 2;
@@ -225,20 +189,14 @@ public class FoPo {
 					interaction -= 1;
 				}
 			}
-			// If successful, increase friendlevel by one
-			// target's opinion moves closer to current agent's
+			// If successful, target's opinion moves closer to current agent's
 			if (interaction > 0) {
-				int rel = relationships.get(id).get(target.id) + 1;
-				relationships.get(id).set(target.id, rel);
+				//int rel = relationships.get(id).get(target.id) + 1;
+				//relationships.get(id).set(target.id, rel);
 				target.opinion[0] = (opinion[0] + target.opinion[0]) / 2; 
 				target.opinion[1] = (opinion[1] + target.opinion[1]) / 2;
 			}
-			// If unsuccessful, decrease friendlevel by one
-			// opinions do not change
-			if (interaction < 0) {
-				int rel = relationships.get(id).get(target.id) - 1;
-				relationships.get(id).set(target.id, rel);
-			}
+			// If unsuccessful, opinions do not change
 		}
 
 		//How each agent chooses a target.
@@ -250,9 +208,10 @@ public class FoPo {
 			//pick a target
 			while (0 < 1) {
 				target = (int)(Math.random() * myFriends.size());
-				if (getAgent(id).getRank() <= this.getRank())
+				if (relationships.get(id).get(target) > 0)
 					break;
-			} 
+			}
+			
 			return target;
 		}
 
@@ -284,9 +243,8 @@ public class FoPo {
 	}
 	public class Advisor extends Agent{
 		int institution;
-		public Advisor(int[] o, int p, int i, int inst) {
+		public Advisor(int[] o, int p, int i) {
 			super(o, p, i);
-			institution = inst;
 		}
 		public int getRank(){
 			return 2;
@@ -304,26 +262,26 @@ public class FoPo {
 	} 
 
 
-	public void updateInst() {
-		for (int i = 0; i < AdvisorList.size(); i++) {
-			Advisor x = AdvisorList.get(i);
-			int inst = x.institution;
-			int[] advop = x.opinion;
-			int[] instop = InstOpinions.get(inst);
-			advop[0] = (advop[0] + instop[0]) / 2; 
-			advop[1] = (advop[1] + instop[1]) / 2;
-		}
-	}
-	public void updateOrg() {
-		for (int i = 0; i < LobbyList.size(); i++) {
-			Lobbyist x = LobbyList.get(i);
-			int org = x.organization;
-			int[] lobop = x.opinion;
-			int[] orgop = OrgOpinions.get(org);
-			lobop[0] = (lobop[0] + orgop[0]) / 2; 
-			lobop[1] = (lobop[1] + orgop[1]) / 2;
-		}
-	}
+	// public void updateInst() {
+	// 	for (int i = 0; i < AdvisorList.size(); i++) {
+	// 		Advisor x = AdvisorList.get(i);
+	// 		int inst = x.institution;
+	// 		int[] advop = x.opinion;
+	// 		int[] instop = InstOpinions.get(inst);
+	// 		advop[0] = (advop[0] + instop[0]) / 2; 
+	// 		advop[1] = (advop[1] + instop[1]) / 2;
+	// 	}
+	// }
+	// public void updateOrg() {
+	// 	for (int i = 0; i < LobbyList.size(); i++) {
+	// 		Lobbyist x = LobbyList.get(i);
+	// 		int org = x.organization;
+	// 		int[] lobop = x.opinion;
+	// 		int[] orgop = OrgOpinions.get(org);
+	// 		lobop[0] = (lobop[0] + orgop[0]) / 2; 
+	// 		lobop[1] = (lobop[1] + orgop[1]) / 2;
+	// 	}
+	// }
 	public void updatePersuasiveness(int[] OPT) {
 		for (int i = 0; i < AgentList.size(); i++) {
 			Agent x = AgentList.get(i);
@@ -333,25 +291,25 @@ public class FoPo {
 			//persuasiveness modifier
 			int perMod = 0;
 			if (distance <= 10) {
-				perMod = 100;
+				perMod = 50;
 			}
 			else if (distance > 10 && distance <= 50) {
-				perMod = 80;
+				perMod = 30;
 			}
 			else if (distance > 50 && distance <= 100) {
-				perMod = 40;
+				perMod = 20;
 			}
 			else if (distance > 100 && distance <= 150) {
 				perMod = 0;
 			}
 			else if (distance > 150 && distance <= 200) {
-				perMod = -40;
+				perMod = -20;
 			}
 			else if (distance > 200 && distance <= 250) {
-				perMod = -80;
+				perMod = -30;
 			}
 			else if (distance > 250) {
-				perMod = -100;
+				perMod = -50;
 			}
 
 			x.persuasiveness = x.persuasiveness + perMod;
@@ -391,8 +349,8 @@ public class FoPo {
 			success.add(distance);
 
 			//TO DO: Recalibrate members of orgs and institutions and update persuasiveness level
-			updateInst();
-			updateOrg();
+			//updateInst();
+			//updateOrg();
 			updatePersuasiveness(OPT);
 		}
 		return OPT;
@@ -451,33 +409,21 @@ public class FoPo {
 	 * The Main Method. Program executes from this method. 
 	 */
 	public static void main(String[] args) {
-		//public FoPo(int numExec, int numLeg, int numAdvisor, int numLobby, int numInst, int numOrg)
+		//public JFoPo(int numExec, int numLeg, int numAdvisor, int numLobby, int numInst, int numOrg)
 		//String toPrint = "numExec, numLeg, numAdvisor, numLobby, numInst, numOrg, success_diff, gens, turns \n";
-		//FoPo world = new FoPo(5,8,12,15,3,3);
+		//JFoPo world = new JFoPo(5,8,12);
 		int[] OPT = new int[2];
 
-		FoPo world = new FoPo(5,10,15,15,5,5);
+		JFoPo world = new JFoPo(5,10,15);
 		world.initialize();
-		OPT = world.run(100, 100);
+		OPT = world.run(100, 500);
 		world.success_for_csv();
 
 
-		world = new FoPo(20,25,30,50,5,10);
+		world = new JFoPo(20,25,30);
 		world.initialize();
-		OPT = world.run(100, 100);
+		OPT = world.run(100, 500);
 		world.success_for_csv();	
-
-
-		world = new FoPo(5,10,15,15,5,5);
-		world.initialize();
-		OPT = world.run(100, 25);
-		world.success_for_csv();
-
-		
-		world = new FoPo(20,25,30,50,5,10);
-		world.initialize();
-		OPT = world.run(100, 25);
-		world.success_for_csv();
 
 // ///////////////////////////////////////////////////////////////////////////
 // 		for (int i = 0; i < 50; i++) {
